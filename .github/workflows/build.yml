@@ -1,0 +1,82 @@
+name: ScanWeb AI Browser Build (Win & Linux)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: 
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Preuzimanje koda
+        uses: actions/checkout@v4
+
+      - name: Postavljanje Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalacija Python paketa i izrada server.exe
+        run: |
+          pip install pyinstaller fastapi uvicorn chromadb
+          pyinstaller --noconfirm --onefile --noconsole server.py
+
+      - name: Postavljanje Fluttera
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Izrada Flutter Windows aplikacije
+        run: |
+          flutter pub get
+          flutter build windows
+
+      - name: Spremanje Windows datoteka (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScanWeb-AI-Browser-Windows
+          path: |
+            build/windows/runner/Release/
+            dist/server.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preuzimanje koda
+        uses: actions/checkout@v4
+
+      - name: Postavljanje Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalacija Python paketa i izrada Linux servera
+        run: |
+          pip install pyinstaller fastapi uvicorn chromadb
+          pyinstaller --noconfirm --onefile server.py
+
+      - name: Instalacija Linux ovisnosti za Flutter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: Postavljanje Fluttera
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Izrada Flutter Linux aplikacije
+        run: |
+          flutter config --enable-linux-desktop
+          flutter pub get
+          flutter build linux
+
+      - name: Spremanje Linux datoteka (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScanWeb-AI-Browser-Linux
+          path: |
+            build/windows/runner/Release/
+            build/linux/x64/release/bundle/
+            dist/server
