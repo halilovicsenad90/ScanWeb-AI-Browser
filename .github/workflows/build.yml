@@ -20,7 +20,7 @@ jobs:
       - name: Instalacija Python paketa i izrada server.exe
         run: |
           pip install pyinstaller fastapi uvicorn chromadb
-          pyinstaller --noconfirm --onefile --noconsole backend/server.py
+          pyinstaller --noconfirm --onefile --noconsole --icon=server.ico backend/server.py
 
       - name: Postavljanje Fluttera
         uses: subosito/flutter-action@v2
@@ -37,7 +37,7 @@ jobs:
         with:
           name: ScanWeb-AI-Browser-Windows
           path: |
-            build/windows/runner/Release/
+            build/windows/x64/runner/Release/
             dist/server.exe
 
   build-linux:
@@ -77,6 +77,5 @@ jobs:
         with:
           name: ScanWeb-AI-Browser-Linux
           path: |
-            build/windows/runner/Release/
             build/linux/x64/release/bundle/
             dist/server
