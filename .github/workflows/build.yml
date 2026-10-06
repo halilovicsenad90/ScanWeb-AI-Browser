@@ -20,7 +20,7 @@ jobs:
       - name: Instalacija Python paketa i izrada server.exe
         run: |
           pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
-          pyinstaller --noconfirm --onefile --noconsole --icon=server.ico --collect-data litellm backend/server.py
+          pyinstaller --noconfirm --onefile --noconsole --icon=server.ico --collect-data litellm --hidden-import=chromadb.telemetry.product.posthog --hidden-import=chromadb.segment.impl.metadata.sqlite --hidden-import=chromadb.db.impl.sqlite backend/server.py
 
       - name: Postavljanje Fluttera
         uses: subosito/flutter-action@v2
@@ -54,7 +54,7 @@ jobs:
       - name: Instalacija Python paketa i izrada Linux servera
         run: |
           pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
-          pyinstaller --noconfirm --onefile --collect-data litellm backend/server.py
+          pyinstaller --noconfirm --onefile --collect-data litellm --hidden-import=chromadb.telemetry.product.posthog --hidden-import=chromadb.segment.impl.metadata.sqlite --hidden-import=chromadb.db.impl.sqlite backend/server.py
 
       - name: Instalacija Linux ovisnosti za Flutter
         run: |
