@@ -19,7 +19,7 @@ jobs:
 
       - name: Instalacija Python paketa i izrada server.exe
         run: |
-          pip install pyinstaller fastapi uvicorn chromadb pillow
+          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
           pyinstaller --noconfirm --onefile --noconsole --icon=server.ico backend/server.py
 
       - name: Postavljanje Fluttera
@@ -53,7 +53,7 @@ jobs:
 
       - name: Instalacija Python paketa i izrada Linux servera
         run: |
-          pip install pyinstaller fastapi uvicorn chromadb pillow
+          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
           pyinstaller --noconfirm --onefile backend/server.py
 
       - name: Instalacija Linux ovisnosti za Flutter
