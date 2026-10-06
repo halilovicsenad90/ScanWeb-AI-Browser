@@ -117,7 +117,7 @@ async def process_chat(request: ChatRequest):
             f"{relevant_knowledge}"
         )
         
-# NOVO: DODATAK ZA DEBATU (Strožija pravila glasanja)
+        # NOVO: DODATAK ZA DEBATU (Strožija pravila glasanja)
         if request.is_debate:
             system_prompt += (
                 "\n\n--- STROGA PRAVILA DEBATE (AI POROTA) ---\n"
