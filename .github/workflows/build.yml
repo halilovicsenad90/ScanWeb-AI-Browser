@@ -1,3 +1,4 @@
+```yaml
 name: ScanWeb AI Browser Build (Win & Linux)
 
 on:
@@ -19,8 +20,8 @@ jobs:
 
       - name: Instalacija Python paketa i izrada server.exe
         run: |
-          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
-          pyinstaller --noconfirm --onefile --noconsole --icon=server.ico --collect-all chromadb --collect-all litellm backend/server.py
+          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic tiktoken
+          pyinstaller --noconfirm --onefile --noconsole --icon=server.ico --collect-all chromadb --collect-all litellm --collect-all tiktoken backend/server.py
 
       - name: Postavljanje Fluttera
         uses: subosito/flutter-action@v2
@@ -53,8 +54,8 @@ jobs:
 
       - name: Instalacija Python paketa i izrada Linux servera
         run: |
-          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic
-          pyinstaller --noconfirm --onefile --collect-all chromadb --collect-all litellm backend/server.py
+          pip install pyinstaller fastapi uvicorn chromadb pillow litellm httpx pydantic tiktoken
+          pyinstaller --noconfirm --onefile --collect-all chromadb --collect-all litellm --collect-all tiktoken backend/server.py
 
       - name: Instalacija Linux ovisnosti za Flutter
         run: |
@@ -79,3 +80,5 @@ jobs:
           path: |
             build/linux/x64/release/bundle/
             dist/server
+```
+
