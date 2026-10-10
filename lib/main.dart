@@ -128,13 +128,46 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   final List<Map<String, dynamic>> _aiModels = [];
   final List<String> _providers = ['Google Gemini', 'OpenAI', 'Anthropic', 'Groq', 'Lokalni (Ollama)', 'OpenRouter'];
 
+  // NOVO: Zastavica koja prati da li je server spreman
+  bool _isServerReady = false;
+
   @override
   void initState() {
     super.initState();
     _blinkController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
     _blinkAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(_blinkController);
     _loadSavedModels();
-    _initSession();
+    
+    // NOVO: Umjesto _initSession() odmah, prvo čekamo server
+    _waitForServer();
+  }
+
+  // NOVO: Funkcija koja svake pola sekunde provjerava je li se upalio server
+  Future<void> _waitForServer() async {
+    bool isReady = false;
+    while (!isReady) {
+      try {
+        final response = await http.get(Uri.parse('http://127.0.0.1:8000/chats'));
+        if (response.statusCode == 200) {
+          isReady = true;
+        }
+      } catch (e) {
+        // Ako baci grešku, znači da server još nije podigao port, čekamo...
+      }
+      
+      if (!isReady) {
+        // Pauziraj pola sekunde pa pokušaj ponovo
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
+    
+    // Server je spreman, uklanjamo loading ekran i učitavamo chatove
+    if (mounted) {
+      setState(() {
+        _isServerReady = true;
+      });
+      await _initSession();
+    }
   }
 
   @override
@@ -518,6 +551,34 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    // NOVO: Prikaz Loading ekrana dok server nije spreman
+    if (!_isServerReady) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/favicon-master.png', height: 80, errorBuilder: (context, error, stackTrace) => const Icon(Icons.shield, color: Colors.cyanAccent, size: 80)),
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(color: Colors.cyanAccent),
+              const SizedBox(height: 24),
+              Text(
+                _lang("Pokretanje AI servera...", "Starting AI server..."),
+                style: const TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _lang("Ovo može potrajati 5-10 sekundi pri paljenju.", "This may take 5-10 seconds on startup."),
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Kada je server spreman, prikazuje se normalan interfejs
     return Scaffold(
       body: Column(
         children: [
