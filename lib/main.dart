@@ -324,8 +324,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         _scrollToBottom(); 
         try {
           final response = await http.post(Uri.parse('http://127.0.0.1:8000/memorize'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'text': userMessage}));
-          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:
-✅ ${data['message']}"}); }); } 
+          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:\n✅ ${data['message']}"}); }); } 
           else { setState(() { _messages.add({"role": "system", "content": _lang("Greška: Nije uspjelo spremanje.", "Error: Failed to save.")}); }); }
         } catch (e) {}
         _scrollToBottom(); return; 
@@ -342,8 +341,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       int messageIndex = _messages.length - 1;
       try {
         final response = await http.post(Uri.parse('http://127.0.0.1:8000/chat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'message': userMessage, 'provider': currentModel['provider'], 'api_key': currentModel['raw_key'], 'model': currentModel['full_model_string'], 'save_user_prompt': isFirst, 'image_base64': _base64Image, 'max_tokens': currentModel['max_tokens'], 'is_debate': false }));
-        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):
-${data['reply']}"}; }); } 
+        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):\n${data['reply']}"}; }); } 
         else { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška", "Error") + " (${currentModel['provider']})"}; }); }
       } catch (e) { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška u konekciji.", "Connection error.")}; }); }
       _scrollToBottom(); isFirst = false;
@@ -371,8 +369,7 @@ ${data['reply']}"}; }); }
           firstRequest = false;
           if (response.statusCode == 200) {
             var data = jsonDecode(response.body); String aiReply = data['reply'];
-            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):
-$aiReply"}; }); _scrollToBottom();
+            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):\n$aiReply"}; }); _scrollToBottom();
             if (aiReply.contains("[KRAJ_DEBATE]") || aiReply.contains("[END_DEBATE]")) {
               setState(() { _isDebateRunning = false; }); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_lang("Porota je donijela odluku!", "Jury reached a decision!")))); await _fetchChats(); return; 
             }
@@ -504,7 +501,7 @@ $aiReply"}; }); _scrollToBottom();
                 p: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                 strong: const TextStyle(color: Colors.white),
                 listBullet: const TextStyle(color: Colors.cyanAccent),
-                code: const TextStyle(backgroundColor: Color(0xFF0B1121), color: Colors.cyanAccent),
+                code: const TextStyle(backgroundColor: const Color(0xFF0B1121), color: Colors.cyanAccent),
               ),
             ),
           ),
@@ -1017,7 +1014,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
             decoration: const BoxDecoration(
-              color: Color(0xFF162032),
+              color: const Color(0xFF162032),
               borderRadius: BorderRadius.vertical(top: Radius.circular(8.0)),
             ),
             child: Row(
