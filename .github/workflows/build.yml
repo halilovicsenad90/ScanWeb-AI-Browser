@@ -32,13 +32,14 @@ jobs:
           flutter pub get
           flutter build windows
 
+      - name: Spajanje servera i Fluttera (Windows)
+        run: copy dist\server.exe build\windows\x64\runner\Release\
+
       - name: Spremanje Windows datoteka (Artifacts)
         uses: actions/upload-artifact@v4
         with:
           name: ScanWeb-AI-Browser-Windows
-          path: |
-            build/windows/x64/runner/Release/
-            dist/server.exe
+          path: build/windows/x64/runner/Release/
 
   build-linux:
     runs-on: ubuntu-latest
@@ -72,11 +73,11 @@ jobs:
           flutter pub get
           flutter build linux
 
+      - name: Spajanje servera i Fluttera (Linux)
+        run: cp dist/server build/linux/x64/release/bundle/
+
       - name: Spremanje Linux datoteka (Artifacts)
         uses: actions/upload-artifact@v4
         with:
           name: ScanWeb-AI-Browser-Linux
-          path: |
-            build/linux/x64/release/bundle/
-            dist/server
-
+          path: build/linux/x64/release/bundle/

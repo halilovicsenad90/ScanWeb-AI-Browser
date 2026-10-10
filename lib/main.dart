@@ -11,12 +11,79 @@ import 'dart:io';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 
-void main() {
+// OVO SU NOVI PAKETI ZA SERVER I PROZOR
+import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
+
+Process? backendProcess;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicijalizacija menadžera prozora (da mognemo ugasiti server kad ugasimo app)
+  await windowManager.ensureInitialized();
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1200, 800),
+    center: true,
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  // Pokreni lokalni Python server
+  await pokreniBackend();
+
   runApp(const AIMultiBrowserApp());
 }
 
-class AIMultiBrowserApp extends StatelessWidget {
+Future<void> pokreniBackend() async {
+  try {
+    // Pronalazi tačan folder gdje je aplikacija instalirana/raspakovana
+    String executableDir = File(Platform.resolvedExecutable).parent.path;
+    String backendPath = Platform.isWindows 
+        ? p.join(executableDir, 'server.exe') 
+        : p.join(executableDir, 'server');
+
+    if (File(backendPath).existsSync()) {
+      // Ako fajl postoji, upali ga u pozadini
+      backendProcess = await Process.start(backendPath, []);
+      print("Backend USPJEŠNO pokrenut na: $backendPath");
+    } else {
+      print("GREŠKA: Backend fajl nije pronađen pored aplikacije na: $backendPath");
+    }
+  } catch (e) {
+    print("Greška pri pokretanju backenda: $e");
+  }
+}
+
+// Mijenjamo StatelessWidget u StatefulWidget da bismo pratili gašenje prozora
+class AIMultiBrowserApp extends StatefulWidget {
   const AIMultiBrowserApp({super.key});
+
+  @override
+  State<AIMultiBrowserApp> createState() => _AIMultiBrowserAppState();
+}
+
+class _AIMultiBrowserAppState extends State<AIMultiBrowserApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() {
+    // KLJUČNO: Ubij proces Python servera kada korisnik "iksa" aplikaciju
+    backendProcess?.kill();
+    super.onWindowClose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +337,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         _scrollToBottom(); 
         try {
           final response = await http.post(Uri.parse('http://127.0.0.1:8000/memorize'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'text': userMessage}));
-          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:\n✅ ${data['message']}"}); }); } 
+          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:
+✅ ${data['message']}"}); }); } 
           else { setState(() { _messages.add({"role": "system", "content": _lang("Greška: Nije uspjelo spremanje.", "Error: Failed to save.")}); }); }
         } catch (e) {}
         _scrollToBottom(); return; 
@@ -287,7 +355,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       int messageIndex = _messages.length - 1;
       try {
         final response = await http.post(Uri.parse('http://127.0.0.1:8000/chat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'message': userMessage, 'provider': currentModel['provider'], 'api_key': currentModel['raw_key'], 'model': currentModel['full_model_string'], 'save_user_prompt': isFirst, 'image_base64': _base64Image, 'max_tokens': currentModel['max_tokens'], 'is_debate': false }));
-        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):\n${data['reply']}"}; }); } 
+        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):
+${data['reply']}"}; }); } 
         else { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška", "Error") + " (${currentModel['provider']})"}; }); }
       } catch (e) { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška u konekciji.", "Connection error.")}; }); }
       _scrollToBottom(); isFirst = false;
@@ -315,7 +384,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           firstRequest = false;
           if (response.statusCode == 200) {
             var data = jsonDecode(response.body); String aiReply = data['reply'];
-            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):\n$aiReply"}; }); _scrollToBottom();
+            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):
+$aiReply"}; }); _scrollToBottom();
             if (aiReply.contains("[KRAJ_DEBATE]") || aiReply.contains("[END_DEBATE]")) {
               setState(() { _isDebateRunning = false; }); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_lang("Porota je donijela odluku!", "Jury reached a decision!")))); await _fetchChats(); return; 
             }
@@ -374,56 +444,56 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 # KORISNIČKO UPUTSTVO
 
 **1. POČETNO PODEŠAVANJE (Dodavanje AI Modela)**
-* Kliknite na "Dodaj AI Model" u meniju desno.
-* Odaberite provajdera i unesite API ključ (Ollama ne traži ključ).
-* Unesite tačan naziv modela i postavite limit tokena.
-* *SAVJET: Ako ne znate tačan naziv modela za vaš API, potražite ga u zvaničnoj dokumentaciji provajdera.*
+- Kliknite na "Dodaj AI Model" u meniju desno.
+- Odaberite provajdera i unesite API ključ (Ollama ne traži ključ).
+- Unesite tačan naziv modela i postavite limit tokena.
+- *SAVJET: Ako ne znate tačan naziv modela za vaš API, potražite ga u zvaničnoj dokumentaciji provajdera.*
 
 **2. ORGANIZACIJA PROJEKATA**
-* Svaki chat je potpuno nezavisan. Baza znanja koju napunite u jednom chatu neće se miješati sa drugim.
-* Preimenujte razgovore klikom na ikonu olovke kako biste lakše radili na više projekata.
+- Svaki chat je potpuno nezavisan. Baza znanja koju napunite u jednom chatu neće se miješati sa drugim.
+- Preimenujte razgovore klikom na ikonu olovke kako biste lakše radili na više projekata.
 
 **3. OBIČNI CHAT (Paralelno procesiranje)**
-* Upalite željene modele (ikona mora svijetliti zeleno).
-* Unesite zadatak i kliknite plavo dugme. Svi modeli će odgovoriti istovremeno.
+- Upalite željene modele (ikona mora svijetliti zeleno).
+- Unesite zadatak i kliknite plavo dugme. Svi modeli će odgovoriti istovremeno.
 
 **4. PUNJENJE BAZE ZNANJA**
-* **UGASITE** sve modele.
-* Zalijepite dugačak tekst ili kod (preko 50 karaktera) i kliknite plavo dugme za slanje.
-* Sistem će tekst pohraniti u bazu. Zatim upalite modele, i oni će automatski koristiti taj tekst za odgovore.
+- **UGASITE** sve modele.
+- Zalijepite dugačak tekst ili kod (preko 50 karaktera) i kliknite plavo dugme za slanje.
+- Sistem će tekst pohraniti u bazu. Zatim upalite modele, i oni će automatski koristiti taj tekst za odgovore.
 
 **5. AI POROTA (Autonomna Debata)**
-* Upalite barem 2 različita modela.
-* Unesite kompleksan problem i kliknite NARANDŽASTO dugme (čekić).
-* Modeli će raspravljati između sebe. Kada postignu dogovor ispisaće `[SLAŽEM_SE]` i servirati `[KONAČNO_RJEŠENJE]`.
+- Upalite barem 2 različita modela.
+- Unesite kompleksan problem i kliknite NARANDŽASTO dugme (čekić).
+- Modeli će raspravljati između sebe. Kada postignu dogovor ispisaće `[SLAŽEM_SE]` i servirati `[KONAČNO_RJEŠENJE]`.
 """;
 
     String guideTextEN = """
 # USER GUIDE
 
 **1. INITIAL SETUP (Adding AI Models)**
-* Click "Add AI Model" in the right menu.
-* Select a provider and enter the API key (Ollama does not require one).
-* Enter the exact model name and set the token limit.
-* *TIP: If you are unsure of the exact model name for your API, check the provider's official documentation.*
+- Click "Add AI Model" in the right menu.
+- Select a provider and enter the API key (Ollama does not require one).
+- Enter the exact model name and set the token limit.
+- *TIP: If you are unsure of the exact model name for your API, check the provider's official documentation.*
 
 **2. PROJECT ORGANIZATION**
-* Every chat is completely independent. Knowledge bases do not mix between chats.
-* Rename conversations using the pencil icon to organize your projects easily.
+- Every chat is completely independent. Knowledge bases do not mix between chats.
+- Rename conversations using the pencil icon to organize your projects easily.
 
 **3. STANDARD CHAT (Parallel Processing)**
-* Turn on desired models (the power icon must be green).
-* Enter a prompt and click the blue button. All active models will reply simultaneously.
+- Turn on desired models (the power icon must be green).
+- Enter a prompt and click the blue button. All active models will reply simultaneously.
 
 **4. BUILDING THE KNOWLEDGE BASE**
-* **Turn OFF** all models.
-* Paste a long text or code (over 50 characters) and click the blue send button.
-* The system will save it to the database. Turn the models back on, and they will use it as context.
+- **Turn OFF** all models.
+- Paste a long text or code (over 50 characters) and click the blue send button.
+- The system will save it to the database. Turn the models back on, and they will use it as context.
 
 **5. AI JURY (Autonomous Debate)**
-* Turn on at least 2 different models.
-* Enter a complex problem and click the ORANGE gavel button.
-* Models will debate with each other. When they agree, they will output `[SLAŽEM_SE]` and serve the `[FINAL_SOLUTION]`.
+- Turn on at least 2 different models.
+- Enter a complex problem and click the ORANGE gavel button.
+- Models will debate with each other. When they agree, they will output `[SLAŽEM_SE]` and serve the `[FINAL_SOLUTION]`.
 """;
 
     showDialog(
