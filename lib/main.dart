@@ -36,6 +36,11 @@ Future<void> pokreniBackend() async {
     String backendPath = Platform.isWindows ? p.join(executableDir, 'server.exe') : p.join(executableDir, 'server');
 
     if (File(backendPath).existsSync()) {
+      // NOVO: Ako je sistem Linux, aplikacija sama daje dozvolu serveru za rad!
+      if (Platform.isLinux || Platform.isMacOS) {
+        await Process.run('chmod', ['+x', backendPath]);
+      }
+
       backendProcess = await Process.start(backendPath, []);
       print("Backend USPJEŠNO pokrenut na: $backendPath");
     } else {
@@ -321,7 +326,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         _scrollToBottom(); 
         try {
           final response = await http.post(Uri.parse('http://127.0.0.1:8000/memorize'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'text': userMessage}));
-          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:\n✅ ${data['message']}"}); }); } 
+          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:
+✅ ${data['message']}"}); }); } 
           else { setState(() { _messages.add({"role": "system", "content": _lang("Greška: Nije uspjelo spremanje.", "Error: Failed to save.")}); }); }
         } catch (e) {}
         _scrollToBottom(); return; 
@@ -338,7 +344,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       int messageIndex = _messages.length - 1;
       try {
         final response = await http.post(Uri.parse('http://127.0.0.1:8000/chat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'message': userMessage, 'provider': currentModel['provider'], 'api_key': currentModel['raw_key'], 'model': currentModel['full_model_string'], 'save_user_prompt': isFirst, 'image_base64': _base64Image, 'max_tokens': currentModel['max_tokens'], 'is_debate': false }));
-        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):\n${data['reply']}"}; }); } 
+        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):
+${data['reply']}"}; }); } 
         else { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška", "Error") + " (${currentModel['provider']})"}; }); }
       } catch (e) { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška u konekciji.", "Connection error.")}; }); }
       _scrollToBottom(); isFirst = false;
@@ -366,7 +373,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           firstRequest = false;
           if (response.statusCode == 200) {
             var data = jsonDecode(response.body); String aiReply = data['reply'];
-            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):\n$aiReply"}; }); _scrollToBottom();
+            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):
+$aiReply"}; }); _scrollToBottom();
             if (aiReply.contains("[KRAJ_DEBATE]") || aiReply.contains("[END_DEBATE]")) {
               setState(() { _isDebateRunning = false; }); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_lang("Porota je donijela odluku!", "Jury reached a decision!")))); await _fetchChats(); return; 
             }
