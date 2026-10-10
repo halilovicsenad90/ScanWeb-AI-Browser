@@ -7,11 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 
-// NOVI PAKETI ZA MARKDOWN I KOD
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 
-// OVO SU NOVI PAKETI ZA SERVER I PROZOR
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
@@ -20,18 +18,13 @@ Process? backendProcess;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicijalizacija menadžera prozora (da mognemo ugasiti server kad ugasimo app)
   await windowManager.ensureInitialized();
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1200, 800),
-    center: true,
-  );
+  WindowOptions windowOptions = const WindowOptions(size: Size(1200, 800), center: true);
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
   });
 
-  // Pokreni lokalni Python server
   await pokreniBackend();
 
   runApp(const AIMultiBrowserApp());
@@ -39,25 +32,20 @@ void main() async {
 
 Future<void> pokreniBackend() async {
   try {
-    // Pronalazi tačan folder gdje je aplikacija instalirana/raspakovana
     String executableDir = File(Platform.resolvedExecutable).parent.path;
-    String backendPath = Platform.isWindows 
-        ? p.join(executableDir, 'server.exe') 
-        : p.join(executableDir, 'server');
+    String backendPath = Platform.isWindows ? p.join(executableDir, 'server.exe') : p.join(executableDir, 'server');
 
     if (File(backendPath).existsSync()) {
-      // Ako fajl postoji, upali ga u pozadini
       backendProcess = await Process.start(backendPath, []);
       print("Backend USPJEŠNO pokrenut na: $backendPath");
     } else {
-      print("GREŠKA: Backend fajl nije pronađen pored aplikacije na: $backendPath");
+      print("GREŠKA: Backend fajl nije pronađen na: $backendPath");
     }
   } catch (e) {
     print("Greška pri pokretanju backenda: $e");
   }
 }
 
-// Mijenjamo StatelessWidget u StatefulWidget da bismo pratili gašenje prozora
 class AIMultiBrowserApp extends StatefulWidget {
   const AIMultiBrowserApp({super.key});
 
@@ -80,7 +68,6 @@ class _AIMultiBrowserAppState extends State<AIMultiBrowserApp> with WindowListen
 
   @override
   void onWindowClose() {
-    // KLJUČNO: Ubij proces Python servera kada korisnik "iksa" aplikaciju
     backendProcess?.kill();
     super.onWindowClose();
   }
@@ -93,10 +80,7 @@ class _AIMultiBrowserAppState extends State<AIMultiBrowserApp> with WindowListen
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A), 
         cardColor: const Color(0xFF1E293B),
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.cyanAccent,
-          secondary: Colors.cyanAccent,
-        ),
+        colorScheme: const ColorScheme.dark(primary: Colors.cyanAccent, secondary: Colors.cyanAccent),
       ),
       home: const MainScreen(),
       debugShowCheckedModeBanner: false,
@@ -207,7 +191,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         actions: [
           TextButton(child: Text(_lang("Odustani", "Cancel")), onPressed: () => Navigator.pop(context)),
           ElevatedButton(
-            child: Text(_lang("Sačuvaj", "Save"), style: const TextStyle(color: Colors.black)),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent),
             onPressed: () async {
               String newTitle = renameController.text.trim();
@@ -218,6 +201,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               }
               Navigator.pop(context);
             },
+            child: Text(_lang("Sačuvaj", "Save"), style: const TextStyle(color: Colors.black)),
           ),
         ],
       ),
@@ -337,8 +321,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         _scrollToBottom(); 
         try {
           final response = await http.post(Uri.parse('http://127.0.0.1:8000/memorize'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'text': userMessage}));
-          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:
-✅ ${data['message']}"}); }); } 
+          if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages.add({"role": "system", "content": "Sistem:\n✅ ${data['message']}"}); }); } 
           else { setState(() { _messages.add({"role": "system", "content": _lang("Greška: Nije uspjelo spremanje.", "Error: Failed to save.")}); }); }
         } catch (e) {}
         _scrollToBottom(); return; 
@@ -355,8 +338,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       int messageIndex = _messages.length - 1;
       try {
         final response = await http.post(Uri.parse('http://127.0.0.1:8000/chat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'session_id': _currentSessionId, 'message': userMessage, 'provider': currentModel['provider'], 'api_key': currentModel['raw_key'], 'model': currentModel['full_model_string'], 'save_user_prompt': isFirst, 'image_base64': _base64Image, 'max_tokens': currentModel['max_tokens'], 'is_debate': false }));
-        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):
-${data['reply']}"}; }); } 
+        if (response.statusCode == 200) { var data = jsonDecode(response.body); setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Agent (${currentModel['provider']}):\n${data['reply']}"}; }); } 
         else { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška", "Error") + " (${currentModel['provider']})"}; }); }
       } catch (e) { setState(() { _messages[messageIndex] = {"role": "assistant", "content": _lang("Greška u konekciji.", "Connection error.")}; }); }
       _scrollToBottom(); isFirst = false;
@@ -384,8 +366,7 @@ ${data['reply']}"}; }); }
           firstRequest = false;
           if (response.statusCode == 200) {
             var data = jsonDecode(response.body); String aiReply = data['reply'];
-            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):
-$aiReply"}; }); _scrollToBottom();
+            setState(() { _messages[messageIndex] = {"role": "assistant", "content": "Porota (${currentModel['provider']}):\n$aiReply"}; }); _scrollToBottom();
             if (aiReply.contains("[KRAJ_DEBATE]") || aiReply.contains("[END_DEBATE]")) {
               setState(() { _isDebateRunning = false; }); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_lang("Porota je donijela odluku!", "Jury reached a decision!")))); await _fetchChats(); return; 
             }
@@ -420,8 +401,8 @@ $aiReply"}; }); _scrollToBottom();
           TextButton(child: Text(_lang("Odustani", "Cancel")), onPressed: () => Navigator.pop(context)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent),
-            child: Text(_lang("Sačuvaj", "Save"), style: const TextStyle(color: Colors.black)),
             onPressed: () { setState(() { _aiModels[index]['max_tokens'] = int.tryParse(editTokenController.text.trim()) ?? 8000; }); _saveModelsToStorage(); Navigator.pop(context); },
+            child: Text(_lang("Sačuvaj", "Save"), style: const TextStyle(color: Colors.black)),
           ),
         ],
       ),
@@ -517,7 +498,7 @@ $aiReply"}; }); _scrollToBottom();
                 p: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                 strong: const TextStyle(color: Colors.white),
                 listBullet: const TextStyle(color: Colors.cyanAccent),
-                code: const TextStyle(backgroundColor: Color(0xFF0B1121), color: Colors.cyanAccent),
+                code: const TextStyle(backgroundColor: const Color(0xFF0B1121), color: Colors.cyanAccent),
               ),
             ),
           ),
@@ -1030,7 +1011,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
             decoration: const BoxDecoration(
-              color: Color(0xFF162032),
+              color: const Color(0xFF162032),
               borderRadius: BorderRadius.vertical(top: Radius.circular(8.0)),
             ),
             child: Row(
@@ -1039,7 +1020,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                 const Text("Code", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
                 InkWell(
                   onTap: () {
-                    Clipboard.setData(ClipboardData(text: element.textContent));
+                    Clipboard.setData(ClipboardData(text: element.textContent ?? ''));
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Kod kopiran! / Code copied!"), duration: Duration(seconds: 1)));
                   },
                   child: const Row(
@@ -1057,7 +1038,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: SelectableText(
-              element.textContent,
+              element.textContent ?? '',
               style: const TextStyle(fontFamily: 'monospace', color: Colors.white, fontSize: 13),
             ),
           ),
