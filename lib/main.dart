@@ -36,11 +36,9 @@ Future<void> pokreniBackend() async {
     String backendPath = Platform.isWindows ? p.join(executableDir, 'server.exe') : p.join(executableDir, 'server');
 
     if (File(backendPath).existsSync()) {
-      // NOVO: Ako je sistem Linux, aplikacija sama daje dozvolu serveru za rad!
       if (Platform.isLinux || Platform.isMacOS) {
         await Process.run('chmod', ['+x', backendPath]);
       }
-
       backendProcess = await Process.start(backendPath, []);
       print("Backend USPJEŠNO pokrenut na: $backendPath");
     } else {
@@ -506,7 +504,7 @@ $aiReply"}; }); _scrollToBottom();
                 p: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                 strong: const TextStyle(color: Colors.white),
                 listBullet: const TextStyle(color: Colors.cyanAccent),
-                code: const TextStyle(backgroundColor: const Color(0xFF0B1121), color: Colors.cyanAccent),
+                code: const TextStyle(backgroundColor: Color(0xFF0B1121), color: Colors.cyanAccent),
               ),
             ),
           ),
@@ -1019,7 +1017,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
             decoration: const BoxDecoration(
-              color: const Color(0xFF162032),
+              color: Color(0xFF162032),
               borderRadius: BorderRadius.vertical(top: Radius.circular(8.0)),
             ),
             child: Row(
